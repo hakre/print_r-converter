@@ -29,6 +29,8 @@
  *     +++ html and source view
  *
  * CHANGES:
+ * 0.1.1 - allow more whitespace in array-open.
+ *       - remove , at the end of values.
  * 0.1.0 - version 0.1.0, fixed some minor issues.
  * 0.0.9 - support for stdClass objects.
  * 0.0.8 - form was closed too early, fixed.
@@ -46,7 +48,7 @@
  *
  * @author hakre
  * @license GPL v3+
- * @version 0.1.0
+ * @version 0.1.1
  * @date 2011-07-24
  */
 
@@ -78,7 +80,7 @@ $canUndo = $requestHasCookieData && isset($_POST['c']);
 class PrintrTokenizer implements Iterator
 {
     private $tokens = array(
-        'array-open' => 'Array\s*\($',
+        'array-open' => 'Array\s*\(\s?$',
         'object-open' => 'stdClass Object\s*\($',
         'key' => '\s*\[[^\]]+\]',
         'map' => ' => ',
@@ -99,13 +101,12 @@ class PrintrTokenizer implements Iterator
             "~$def~im", $this->buffer, $match, PREG_OFFSET_CAPTURE, $at
         );
         if (false === $found) die('Regex error.');
-        return $found
-            ? (
-                $at === $match[0][1]
-                ? strlen($match[0][0])
-                : 0
-            )
-            : 0;
+
+        $return = 0;
+        if ($found && $at === $match[0][1])
+            $return = strlen($match[0][0]);
+
+        return $return;
     }
     private function matchLargest($at)
     {
@@ -197,6 +198,8 @@ function PrintrParser($buffer) {
                 $state = 1;
                 break;
             case 'value':
+                if (is_string($text) && ($text = rtrim($text)) && ',' === substr($text,-1))
+                    $text = substr($text, 0, -1);
                 ((string)(int)$text === $text) && $text = (int)$text;
                 $rP = $text;
                 # fall-through intended
