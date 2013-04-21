@@ -5,10 +5,10 @@
  * Author: hakre <hakre.wordpress.com>
  * Copyright (c) 2011, some rights reserved
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * TThis program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,13 +22,11 @@
  *   - string values over multiple lines not supported.
  *   - limited support for objects, stdClass only.
  *
- * best php codepad in town:
- * >> http://codepad.viper-7.com/ <<
- *   +++ php 5.3 support
- *    +++ working regex
- *     +++ html and source view
- *
  * CHANGES:
+ *
+ * 0.1.4 - remove codepad viper specific stuff
+ * 0.1.3 - ignore leading whitespace at the beginning of the string
+ * 0.1.2 - experimental compacted output (join numeric indezies)
  * 0.1.1 - allow more whitespace in array-open.
  *       - remove , at the end of values.
  * 0.1.0 - version 0.1.0, fixed some minor issues.
@@ -48,8 +46,8 @@
  *
  * @author hakre
  * @license GPL v3+
- * @version 0.1.1
- * @date 2011-07-24
+ * @version 0.1.4
+ * @date 2013-04-22
  */
 
 header('Content-Type: text/html; charset=utf-8');
@@ -74,146 +72,6 @@ if (!empty($i))
 isset($_POST['c']) && $i = '';
 $canUndo = $requestHasCookieData && isset($_POST['c']);
 
-/**
- * print_r regex Tokenizer
- */
-class PrintrTokenizer implements Iterator
-{
-    private $tokens = array(
-        'array-open' => 'Array\s*\(\s?$',
-        'object-open' => 'stdClass Object\s*\($',
-        'key' => '\s*\[[^\]]+\]',
-        'map' => ' => ',
-        'array-close' => '\s*\)\s?$',
-        'value' => '(?<= => )[^\n]*$'
-    );
-    private $buffer;
-    private $offset;
-    private $index;
-    private $current;
-    public function __construct($buffer)
-    {
-        $this->buffer = $buffer;
-    }
-    private function match($def, $at)
-    {
-        $found = preg_match(
-            "~$def~im", $this->buffer, $match, PREG_OFFSET_CAPTURE, $at
-        );
-        if (false === $found) die('Regex error.');
-
-        $return = 0;
-        if ($found && $at === $match[0][1])
-            $return = strlen($match[0][0]);
-
-        return $return;
-    }
-    private function matchLargest($at)
-    {
-        $match = $max = 0;
-        foreach($this->tokens as $name => $def)
-        {
-            ($len = $this->match($def, $at))
-            && $len > $max
-            && ($max = $len)
-            && ($match = $name);
-        }
-        return $match ? array($match, $at, $max) : null;
-    }
-    public function current()
-    {
-        return $this->current;
-    }
-    public function key()
-    {
-        return $this->index;
-    }
-    public function next()
-    {
-        $current = $this->matchLargest($this->offset);
-        ($current)
-            && ($current = array_merge($current, array(substr($this->buffer, $this->offset, $current[2]))))
-            && ($this->offset += $current[2])
-            ;
-        $this->current = $current;
-        $this->index++;
-    }
-    public function valid()
-    {
-        return !(null === $this->current);
-    }
-    public function rewind()
-    {
-        $this->offset = 0;
-        $this->next();
-        $this->index = 0;
-    }
-}
-
-/**
- * print_r Parser
- */
-function PrintrParser($buffer) {
-    $result = null;
-    $rP = &$result;
-    $rS = array();
-    $level = 0;
-    $len = strlen($buffer);
-    $offset = 0;
-    $tokens = new PrintrTokenizer($buffer);
-    $state = 0; // 1: map
-    foreach($tokens as $index => $tokenData) {
-        list($token, $offset, $length, $text) = $tokenData;
-        switch($token)
-        {
-            case 'array-open':
-                $rP = array();
-                $state = 0;
-                break;
-            case 'object-open':
-                $rP = new stdClass();
-                $state = 0;
-                break;
-            case 'key':
-                if (1 === $state) { // empty value
-                    $rP = '';
-                    $rSi = count($rS)-1;
-                    $rP = &$rS[$rSi];
-                    unset($rS[$rSi]);
-                    $state = 0;
-                }
-                $key = preg_replace('~\[(.*)\]~', '$1', trim($text));
-                ((string)(int)$key === $key) && $key = (int)$key;
-                if (is_object($rP))
-                    $rP->$key = null;
-                else
-                    $rP[$key] = null;
-                break;
-            case 'map':
-                $rS[count($rS)] = &$rP;
-                if (is_object($rP))
-                    $rP = &$rP->$key;
-                else
-                    $rP = &$rP[$key];
-                $state = 1;
-                break;
-            case 'value':
-                if (is_string($text) && ($text = rtrim($text)) && ',' === substr($text,-1))
-                    $text = substr($text, 0, -1);
-                ((string)(int)$text === $text) && $text = (int)$text;
-                $rP = $text;
-                # fall-through intended
-            case 'array-close':
-                $rSi = count($rS)-1;
-                $rP = &$rS[$rSi];
-                unset($rS[$rSi]);
-                $state = 0;
-                break;
-        }
-    }
-    return $result;
-}
-
 ?>
 <html>
 <head>
@@ -221,38 +79,44 @@ function PrintrParser($buffer) {
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <style>
         body {font-family: helvetica,arial,freesans,clean,sans-serif;}
-        a.lb {width:normal; float:right; display:block; padding:0.5em; margin:2px; font-size:12px;}
-        .lb {height: 1.2em; line-height: 1.2em; padding: 0 1em; position: relative; top: 1px; margin-left: 10px; font-weight: bold; color: #333; text-shadow: 1px 1px 0 white; white-space: nowrap; border: none; overflow: visible; background: #DDD; filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr='white',endColorstr='#E1E1E1'); background: -webkit-gradient(linear,0% 0,0% 100%,from(white),to(#E1E1E1)); background: -moz-linear-gradient(-90deg,white,#E1E1E1); border-bottom: 1px solid #EBEBEB; -webkit-border-radius: 4px; -moz-border-radius: 4px; border-radius: 4px; -webkit-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); -moz-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); -webkit-font-smoothing: subpixel-antialiased!important;}
-        a.lb:hover {color:fff; text-shadow: 1px 1px 0 #300; border-bottom: 1px solid #F00; background: #F00; filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr='#900',endColorstr='#F00'); background: -webkit-gradient(linear,0% 0,0% 100%,from(#900),to(#F00)); background: -moz-linear-gradient(-90deg,#900,#F00);}
         h1 {font-weight: normal; letter-spacing:-1px;}
         pre.b {border-top: 1px solid #efefef; xborder:1px solid #333; xbackground:#ff9; margin:0.5em; padding:0.5em; background: #DDD; filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr='white',endColorstr='#E1E1E1'); background: -webkit-gradient(linear,0% 0,0% 100%,from(white),to(#E1E1E1)); background: -moz-linear-gradient(-90deg,white,#E1E1E1); border-bottom: 1px solid #EBEBEB; -webkit-border-radius: 4px; -moz-border-radius: 4px; border-radius: 4px; -webkit-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); -moz-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); -webkit-font-smoothing: subpixel-antialiased!important;}
     </style>
 </head>
 <body>
-<a class="lb" title="View print_r converter in full browser window" style="margin-right:149px" href="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" target="_top">UI Only</a>
-<a class="lb" title="View print_r converter (and edit code) within codepad.viper-7.com" href="<?php echo htmlspecialchars(substr($_SERVER['PHP_SELF'],0,-6), ENT_QUOTES, 'UTF-8'); ?>" target="_top">Source</a>
 <h1>print_r converter</h1>
 <form action="" method="post" accept-charset="UTF-8">
-<?php
+    <?php
 
-if ($i):
+    if ($i):
 
-    $buffer = str_replace("\r\n", "\n", $i);
-    $var = PrintrParser($buffer);
-    $buffer = var_export($var, true);
-    $buffer = str_replace('array (', 'array(', $buffer);
-    $buffer = str_replace('stdClass::__set_state(array(', '(object) (array(', $buffer);
-    $buffer = preg_replace('~(=> )\n\s*(array\()~', '$1$2', $buffer);
-    $buffer = '$'.(is_array($var) ? 'data' : 'object').' = '.$buffer.';';
+        $buffer = str_replace("\r\n", "\n", $i);
+        $libpath = __DIR__;
+        require($libpath . '/PrintrTokenizer.php');
+        require($libpath . '/PrintrParser.php');
 
-?>
-    Output: <input type="submit" name="c" value="clear" />
-    <div>
-        <textarea rows="16" wrap="off" cols="80" style="overflow:auto; width:99%;"><?php echo htmlspecialchars($buffer, ENT_QUOTES, 'UTF-8');?></textarea>
-    </div>
-<?php
-endif;
-?>
+        $var = PrintrParser($buffer);
+        if (is_array($var)) {
+            require($libpath . '/StringLines.php');
+            require($libpath . '/ArrayExporter.php');
+            $exporter = new ArrayExporter();
+            $buffer = $exporter->export($var);
+        } else {
+            $buffer = var_export($var, true);
+        }
+        $buffer = str_replace('array (', 'array(', $buffer); // used for var_export() output
+        $buffer = str_replace('stdClass::__set_state(array(', '(object) (array(', $buffer);
+        $buffer = preg_replace('~(=> )\n\s*(array\()~', '$1$2', $buffer);
+        $buffer = '$'.(is_array($var) ? 'data' : 'object').' = '.$buffer.';';
+
+        ?>
+        Output: <input type="submit" name="c" value="clear" />
+        <div>
+            <textarea rows="16" wrap="off" cols="80" style="overflow:auto; width:99%;"><?php echo htmlspecialchars($buffer, ENT_QUOTES, 'UTF-8');?></textarea>
+        </div>
+    <?php
+    endif;
+    ?>
     <label for="i">print_r input (array/stdClass object):</label>
     <input type="submit" value="convert" />
     <?php if ($canUndo) : ?> <a href="">undo clear</a><?php endif; ?>
