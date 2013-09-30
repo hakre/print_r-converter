@@ -22,46 +22,8 @@
  */
 
 /**
- * Class ArrayExportObject
+ * Class ArrayExporter
  */
-class ArrayExportObject extends ArrayObject
-{
-    public function offsetGet($index) {
-        $value = parent::offsetGet($index);
-
-        if (is_array($value)) {
-            return new self($value);
-        }
-        return $value;
-    }
-
-    public function hasChildren() {
-        foreach ($this as $value) {
-            if (is_array($value)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * an array has no string keys but only zero based indexes from 0 ... count() - 1
-     *
-     * @return bool
-     */
-    public function isArray() {
-
-        $keys = array_keys($this->getArrayCopy());
-        if (!$keys) {
-            return true;
-        }
-        $count   = count($keys);
-        $compare = range(0, $count - 1);
-        return $keys === $compare;
-    }
-}
-
-
 class ArrayExporter
 {
     public function export($array) {
