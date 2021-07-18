@@ -1,8 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 /*
  * This file is part of Print_r Converter
  *
- * Copyright (C) 2011, 2012, 2013 hakre <http://hakre.wordpress.com>
+ * Copyright (C) 2011, 2012, 2013, 2021 hakre <http://hakre.wordpress.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,67 +21,75 @@
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
 
+namespace Hakre\PrintrConverter;
+
 /**
  * Class StringLines
  */
 class StringLines
 {
     /**
-     * @var array
+     * @var string[]
      */
     private $lines;
+
     /**
      * @var string
      */
-    private $lineSeperator = "\n";
+    private $lineSeparator;
 
-    public function __construct(array $lines = array(), $lineSeparator = "\n") {
+    public static function createFromString(string $string, string $lineSeparator = "\n"): StringLines
+    {
+        return new self(explode($lineSeparator, $string), $lineSeparator);
+    }
+
+    /**
+     * @param string[] $lines
+     * @param string $lineSeparator
+     */
+    public function __construct(array $lines = [], string $lineSeparator = "\n")
+    {
         $this->lines = $lines;
-        $this->lineSeperator = (string) $lineSeparator;
+        $this->lineSeparator = $lineSeparator;
     }
 
-    public function setLineSeperator($lineSeperator) {
-        $this->lineSeperator = $lineSeperator;
+    public function getString(): string
+    {
+        return implode($this->lineSeparator, $this->lines);
     }
 
-    public function setString($string) {
-        $this->string = $string;
-    }
-
-    public function getString() {
-        return implode($this->lineSeperator, $this->lines);
-    }
-
-    public function indent($by) {
-        foreach($this->lines as &$line) {
+    /**
+     * @param string $by
+     * @return StringLines
+     */
+    public function indent(string $by): StringLines
+    {
+        foreach ($this->lines as &$line) {
             $line = $by . $line;
         }
         return $this;
     }
 
-    public function addLine($line) {
-        $this->lines[] = $line;
-    }
-
-    public function wrapLines($first, $last)
+    /**
+     * @param string $first
+     * @param string $last
+     */
+    public function wrapLines(string $first, string $last): void
     {
         array_unshift($this->lines, $first);
         $this->lines[] = $last;
     }
 
-    function __toString() {
-        return implode($this->lineSeperator, $this->lines);
+    public function __toString()
+    {
+        return implode($this->lineSeparator, $this->lines);
     }
 
     /**
-     * @return array
+     * @return string[]
      */
-    public function getLines() {
-        return $this->lines;
-    }
-
-    public static function createFromString($string, $lineSeparator = "\n")
+    public function getLines(): array
     {
-        return new self(explode($lineSeparator, $string), $lineSeparator);
+        return $this->lines;
     }
 }

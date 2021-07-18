@@ -1,8 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 /*
  * This file is part of Print_r Converter
  *
- * Copyright (C) 2011, 2012, 2013 hakre <http://hakre.wordpress.com>
+ * Copyright (C) 2011, 2012, 2013, 2021 hakre <http://hakre.wordpress.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,25 +21,29 @@
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
 
+namespace Hakre\PrintrConverter;
+
 /**
  * Class ArrayExporter
  */
 class ArrayExporter
 {
-    public function export($array) {
-        $export       = new ArrayExportObject($array);
+    public function export(array $array): string
+    {
+        $export = new ArrayExportObject($array);
         $omitNewLines = !$export->hasChildren();
+        $buffer = [];
 
         if ($omitNewLines) {
-            $buffer[]       = 'array(';
-            $count          = count($array);
-            $virtKeyPointer = 0;
+            $buffer[] = 'array(';
+            $count = count($array);
+            $virtualKeyPointer = 0;
             foreach ($array as $key => $value) {
-                $count--;
-                $virtKey = $virtKeyPointer === $key;
-                is_int($key) && $virtKeyPointer++;
+                $count --;
+                $virtualKey = $virtualKeyPointer === $key;
+                is_int($key) && $virtualKeyPointer ++;
 
-                $buffer[] = ($virtKey ? '' : var_export($key, true) . ' => ')
+                $buffer[] = ($virtualKey ? '' : var_export($key, true) . ' => ')
                     . var_export($value, true)
                     . ($count ? ', ' : '');
             }
@@ -48,25 +52,23 @@ class ArrayExporter
         }
 
 
-        $buffer         = array();
-        $virtKeyPointer = 0;
+        $buffer = [];
+        $virtualKeyPointer = 0;
         foreach ($array as $key => $value) {
-            $hasChildren = is_array($value);
-            $virtKey     = $virtKeyPointer === $key;
-            is_int($key) && $virtKeyPointer++;
+            $virtualKey = $virtualKeyPointer === $key;
+            is_int($key) && $virtualKeyPointer ++;
 
-            $buffer[] = ($virtKey ? '' : var_export($key, true) . ' => ')
+            $buffer[] = ($virtualKey ? '' : var_export($key, true) . ' => ')
                 .
                 (
-                $hasChildren
-                    ? ltrim(StringLines::createFromString($this->export($value))->indent('    '))
+                is_array($value)
+                    ? ltrim((string)StringLines::createFromString($this->export($value))->indent('    '))
                     : var_export($value, true)
                 )
                 . ',';
         }
 
-        $buffer = new StringLines($buffer);
-        $buffer->indent('    ');
+        $buffer = (new StringLines($buffer))->indent('    ');
         $buffer->wrapLines('array(', ')');
         return $buffer->getString();
     }

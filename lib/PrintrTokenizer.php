@@ -1,8 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 /*
  * This file is part of Print_r Converter
  *
- * Copyright (C) 2011, 2012, 2013 hakre <http://hakre.wordpress.com>
+ * Copyright (C) 2011, 2012, 2013, 2021 hakre <http://hakre.wordpress.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,79 +21,131 @@
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
 
+namespace Hakre\PrintrConverter;
+
+use Iterator;
+
 /**
  * print_r regex Tokenizer
  */
 class PrintrTokenizer implements Iterator
 {
-    private $tokens = array(
-        'array-open'  => 'Array\s*\(\s?$',
+    /**
+     * @psalm-var array{array-close: string, array-open: string, key: string, leading-whitespace: string, map: string, object-open: string, value: string}
+     * @var string[]
+     */
+    private $tokens = [
+        'array-open' => 'Array\s*\(\s?$',
         'object-open' => 'stdClass Object\s*\($',
-        'key'         => '\s*\[[^\]]+\]',
-        'map'         => ' => ',
+        'key' => '\s*\[[^\]]+\]',
+        'map' => ' => ',
         'array-close' => '\s*\)\s?$',
-        'value'       => '(?<= => )[^\n]*$',
-        'leadws'      => '^\s+',
-    );
+        'value' => '(?<= => )[^\n]*$',
+        'leading-whitespace' => '^\s+',
+    ];
+
+    /**
+     * @var string
+     */
     private $buffer;
+
+    /**
+     * @var ?int
+     */
     private $offset;
+
+    /**
+     * @var ?int
+     */
     private $index;
+
+    /**
+     * @var ?array{0: string, 1: int, 2: int, 3: string}
+     */
     private $current;
 
-    public function __construct($buffer) {
+    public function __construct(string $buffer)
+    {
         $this->buffer = $buffer;
     }
 
-    private function match($def, $at) {
+    /**
+     * @return array{0: string, 1: int, 2: int, 3: string}
+     */
+    public function current(): array
+    {
+        assert(is_array($this->current));
+        return $this->current;
+    }
+
+    public function key(): int
+    {
+        assert(is_int($this->index));
+        return $this->index;
+    }
+
+    public function valid(): bool
+    {
+        return !(null === $this->current);
+    }
+
+    public function rewind(): void
+    {
+        $this->offset = 0;
+        $this->index = - 1;
+        $this->next();
+    }
+
+    public function next(): void
+    {
+        assert(is_int($this->offset));
+        $current = $this->matchLargest($this->offset);
+        ($current)
+        && (array_push($current, substr($this->buffer, $this->offset, $current[2])))
+        && ($this->offset += $current[2]);
+        /** @var ?array{0: string, 1: int, 2: int, 3: string} $current */
+        $this->current = $current;
+        assert(is_int($this->index));
+        $this->index ++;
+    }
+
+    /**
+     * @param int $at
+     * @return ?array{0: string, 1: int, 2: int} array{0: string token-name, 1: int offset, 2: int length}
+     */
+    private function matchLargest(int $at): ?array
+    {
+        $match = $max = 0;
+        foreach ($this->tokens as $name => $def) {
+            $len = $this->match($def, $at);
+            if ($len > $max) {
+                $max = $len;
+                $match = $name;
+            }
+        }
+        return $match ? [$match, $at, $max] : null;
+    }
+
+    private function match(string $def, int $at): int
+    {
         $found = preg_match(
             "~$def~im", $this->buffer, $match, PREG_OFFSET_CAPTURE, $at
         );
         if (false === $found) {
-            throw new RuntimeException('Regex error.');
+            throw new \RuntimeException('Regex error.');
         }
 
         $return = 0;
-        if ($found && $at === $match[0][1])
+        if (0 === $found) {
+            return $return;
+        }
+
+        assert(is_array($match[0]));
+        assert(is_string($match[0][0]));
+        if ($at === $match[0][1]) {
             $return = strlen($match[0][0]);
+        }
 
         return $return;
-    }
-
-    private function matchLargest($at) {
-        $match = $max = 0;
-        foreach ($this->tokens as $name => $def) {
-            ($len = $this->match($def, $at))
-                && $len > $max
-                && ($max = $len)
-                && ($match = $name);
-        }
-        return $match ? array($match, $at, $max) : null;
-    }
-
-    public function current() {
-        return $this->current;
-    }
-
-    public function key() {
-        return $this->index;
-    }
-
-    public function next() {
-        $current = $this->matchLargest($this->offset);
-        ($current)
-            && ($current = array_merge($current, array(substr($this->buffer, $this->offset, $current[2]))))
-            && ($this->offset += $current[2]);
-        $this->current = $current;
-        $this->index++;
-    }
-
-    public function valid() {
-        return !(null === $this->current);
-    }
-
-    public function rewind() {
-        $this->offset = 0;
-        $this->next();
-        $this->index = 0;
     }
 }

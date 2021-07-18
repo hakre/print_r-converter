@@ -21,32 +21,4 @@
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
 
-namespace Hakre\PrintrConverter;
-
-/**
- * Class ArrayExportObject
- */
-class ArrayExportObject
-{
-    /**
-     * @var array
-     */
-    private $array;
-
-    /**
-     * @param array $array
-     */
-    public function __construct(array $array) {
-        $this->array = $array;
-    }
-
-    public function hasChildren(): bool
-    {
-        foreach ($this->array as $value) {
-            if (is_array($value)) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
+require __DIR__ . '/../print_r-converter.php';

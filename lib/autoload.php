@@ -21,32 +21,8 @@
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
 
-namespace Hakre\PrintrConverter;
-
-/**
- * Class ArrayExportObject
- */
-class ArrayExportObject
-{
-    /**
-     * @var array
-     */
-    private $array;
-
-    /**
-     * @param array $array
-     */
-    public function __construct(array $array) {
-        $this->array = $array;
-    }
-
-    public function hasChildren(): bool
-    {
-        foreach ($this->array as $value) {
-            if (is_array($value)) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
+require_once(__DIR__ . '/PrintrTokenizer.php');
+require_once(__DIR__ . '/PrintrParser.php');
+require_once(__DIR__ . '/StringLines.php');
+require_once(__DIR__ . '/ArrayExportObject.php');
+require_once(__DIR__ . '/ArrayExporter.php');

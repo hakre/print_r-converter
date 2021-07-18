@@ -1,8 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 /*
  * This file is part of Print_r Converter
  *
- * Copyright (C) 2011, 2012, 2013 hakre <http://hakre.wordpress.com>
+ * Copyright (C) 2011, 2012, 2013, 2021 hakre <http://hakre.wordpress.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,72 +21,84 @@
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
 
+namespace Hakre\PrintrConverter;
+
 /**
  * print_r Parser
+ *
+ * @throws \Exception
+ *
+ * @return null|array|object
  */
-function PrintrParser($buffer) {
+function PrintrParser(string $buffer)
+{
     $result = null;
-    $rP     = & $result;
-    $rS     = array();
-    $level  = 0;
-    $len    = strlen($buffer);
-    $offset = 0;
+    $resultPointer = &$result;
+    $resultStack = [];
     $tokens = new PrintrTokenizer($buffer);
-    $state  = 0; // 1: map
-    foreach ($tokens as $index => $tokenData) {
-        list($token, $offset, $length, $text) = $tokenData;
+    $state = 0; // 1: map
+    foreach ($tokens as $index => [$token, , , $text]) {
         switch ($token) {
             case 'array-open':
-                $rP    = array();
+                $resultPointer = [];
                 $state = 0;
                 break;
             case 'object-open':
-                $rP    = new stdClass();
+                $resultPointer = new \stdClass();
                 $state = 0;
                 break;
             case 'key':
                 if (1 === $state) { // empty value
-                    $rP  = '';
-                    $rSi = count($rS) - 1;
-                    $rP  = & $rS[$rSi];
-                    unset($rS[$rSi]);
+                    $resultPointer = '';
+                    $resultStackIndex = count($resultStack) - 1;
+                    $resultPointer = &$resultStack[$resultStackIndex];
+                    unset($resultStack[$resultStackIndex]);
                     $state = 0;
                 }
-                $key = preg_replace('~\[(.*)\]~', '$1', trim($text));
+                $key = \preg_replace('~\[(.*)]~', '$1', trim($text));
                 ((string)(int)$key === $key) && $key = (int)$key;
-                if (is_object($rP))
-                    $rP->$key = null;
-                else
-                    $rP[$key] = null;
+                if (is_object($resultPointer)) {
+                    $resultPointer->$key = null;
+                } else {
+                    assert(is_array($resultPointer));
+                    $resultPointer[$key] = null;
+                }
                 break;
             case 'map':
-                $rS[count($rS)] = & $rP;
-                if (is_object($rP))
-                    $rP = & $rP->$key;
-                else
-                    $rP = & $rP[$key];
+                assert(isset($key));
+                /** @noinspection ArrayPushMissUseInspection */
+                $resultStack[count($resultStack)] = &$resultPointer;
+                if (is_object($resultPointer)) {
+                    $resultPointer = &$resultPointer->$key;
+                } else {
+                    assert(is_array($resultPointer));
+                    assert(is_string($key) || is_int($key));
+                    $resultPointer = &$resultPointer[$key];
+                }
                 $state = 1;
                 break;
             case 'value':
-                if (is_string($text) && ($text = rtrim($text)) && ',' === substr($text, -1))
-                    $text = substr($text, 0, -1);
+                if (($text = rtrim($text)) && ',' === substr($text, - 1)) {
+                    $text = substr($text, 0, - 1);
+                }
                 ((string)(int)$text === $text) && $text = (int)$text;
                 ((string)(float)$text === $text) && $text = (float)$text;
-                $rP = $text;
-            # fall-through intended
+                assert(is_string($text) || is_int($text) || is_float($text));
+                $resultPointer = $text;
+            // fall-through intended
             case 'array-close':
-                $rSi = count($rS) - 1;
-                $rP  = & $rS[$rSi];
-                unset($rS[$rSi]);
+                $resultStackIndex = count($resultStack) - 1;
+                $resultPointer = &$resultStack[$resultStackIndex];
+                unset($resultStack[$resultStackIndex]);
                 $state = 0;
                 break;
 
-            case 'leadws':
+            case 'leading-whitespace':
                 # ignore leading whitespace
-               break;
+                break;
 
             default:
-                throw new Exception(sprintf('Unexpected token %s in state %d at index %d', $token, $state, $index));
+                throw new \Exception(sprintf('Unexpected token %s in state %d at index %d', $token, $state, $index));
         }
     }
     return $result;
