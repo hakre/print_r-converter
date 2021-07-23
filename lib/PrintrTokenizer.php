@@ -36,7 +36,9 @@ class PrintrTokenizer implements Iterator
      */
     private $tokens = [
         'array-open' => 'Array\s*\(\s?$',
-        'object-open' => 'stdClass Object\s*\($',
+        'object-open' => 'stdClass\s+Object\s*\($',
+        'anonymous-open' => 'class\@anonymous\s+Object\s*\($',
+        'closure-open' => 'Closure\s+Object\s*\($',
         'key' => '\s*\[[^\]]+\]',
         'map' => ' => ',
         'array-close' => '\s*\)\s?$',

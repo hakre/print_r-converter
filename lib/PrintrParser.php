@@ -44,6 +44,8 @@ function PrintrParser(string $buffer)
                 $state = 0;
                 break;
             case 'object-open':
+            case 'anonymous-open':
+            case 'closure-open':
                 $resultPointer = new \stdClass();
                 $state = 0;
                 break;
