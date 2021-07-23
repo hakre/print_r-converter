@@ -23,9 +23,38 @@
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
 
-require_once(__DIR__ . '/ArrayExporter.php');
-require_once(__DIR__ . '/ArrayExportObject.php');
-require_once(__DIR__ . '/PrintrParse.php');
-require_once(__DIR__ . '/PrintrTokenizer.php');
-require_once(__DIR__ . '/PrintrWrite.php');
-require_once(__DIR__ . '/StringLines.php');
+namespace Hakre\PrintrConverter;
+
+/**
+ * print_r Writer
+ *
+ * Wraps the ad-hoc "exporting" of the parse result
+ *
+ * @param null|array|object $var
+ * @param string $open
+ * @param string $close
+ * @return string
+ * @see PrintrParse()
+ */
+function PrintrWrite($var): string
+{
+    if (is_array($var)) {
+        $exporter = new ArrayExporter();
+        $buffer = $exporter->export($var);
+    } else {
+        $buffer = var_export($var, true);
+    }
+
+    // polish var_export() output
+    $buffer = str_replace(
+        ['array (', 'stdClass::__set_state(array('],
+        ['array(', '(object) (array('],
+        $buffer
+    );
+    $buffer = preg_replace('~(=> )\n\s*(array\()~', '$1$2', $buffer);
+
+    // variable prefix
+    $buffer = '$' . (is_array($var) ? 'data' : 'object') . ' = ' . $buffer . ';';
+
+    return $buffer;
+}

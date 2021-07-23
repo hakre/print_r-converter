@@ -17,6 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * SPDX-License-Identifier: AGLP-3.0-or-later
+ *
  * @author hakre <http://hakre.wordpress.com>
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
@@ -30,7 +32,7 @@ namespace Hakre\PrintrConverter;
  *
  * @return null|array|object
  */
-function PrintrParser(string $buffer)
+function PrintrParse(string $buffer)
 {
     $result = null;
     $resultPointer = &$result;
