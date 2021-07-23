@@ -22,7 +22,7 @@
  * @author hakre <http://hakre.wordpress.com>
  * @license AGPL-3.0-or-later <https://spdx.org/licenses/AGPL-3.0-or-later>
  *
- * @version 0.2.1
+ * @version 0.2.2
  * @date 2021-07-23
  *
  * known:
@@ -31,6 +31,7 @@
  *
  * CHANGES:
  *
+ * 0.2.2 - composer project
  * 0.2.1 - improve html/css and add closure & anonymous class support
  * 0.2.0 - host yourself
  * 0.1.5 - move into github repository
@@ -56,6 +57,8 @@
  */
 
 namespace Hakre\PrintrConverter;
+
+require_once(__DIR__ . '/vendor/autoload.php');
 
 header('Content-Type: text/html; charset=utf-8');
 
@@ -83,8 +86,6 @@ isset($_POST['clear']) && $input = '';
 $canUndo = $requestHasCookieData && isset($_POST['clear']);
 $buffer = null;
 if ($input) {
-    require_once(__DIR__ . '/lib/autoload.php');
-
     $buffer = str_replace("\r\n", "\n", $input);
 
     $var = PrintrParse($buffer);

@@ -23,9 +23,5 @@
  * @license AGPL-3.0 <http://spdx.org/licenses/AGPL-3.0>
  */
 
-require_once(__DIR__ . '/ArrayExporter.php');
-require_once(__DIR__ . '/ArrayExportObject.php');
 require_once(__DIR__ . '/PrintrParse.php');
-require_once(__DIR__ . '/PrintrTokenizer.php');
 require_once(__DIR__ . '/PrintrWrite.php');
-require_once(__DIR__ . '/StringLines.php');

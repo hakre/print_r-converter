@@ -9,9 +9,9 @@ It has grown out of Stackoverflow where users were pasting array data from [`pri
 
 ## Getting Started
 
-Clone the repository and start serving from the public directory:
+Clone the project and start serving from the public directory:
 ~~~
-git clone git@github.com:hakre/print_r-converter.git
+composer create-project hakre/print_r-converter
 php -S localhost:8106 -t print_r-converter/public
 ~~~
 

@@ -1,0 +1,18 @@
+{
+  "name": "hakre/print_r-converter",
+  "description": "The Print_r Converter - a PHP tool that is able to convert `print_r()`-output into PHP code.",
+  "license": "AGPL-3.0-or-later",
+  "require": {
+    "php": ">= 7.3"
+  },
+  "autoload": {
+    "files": ["lib/autoload.php"],
+    "psr-4": {
+      "Hakre\\PrintrConverter\\": "lib"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "extra": {}
+}
